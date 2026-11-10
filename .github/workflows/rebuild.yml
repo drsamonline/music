@@ -1,0 +1,29 @@
+name: rebuild manifest
+
+on:
+  push:
+    paths:
+      - 'sources/**'
+      - 'tools/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Rebuild data/tracks.json from sources/seed.json
+        run: python3 tools/build_manifest.py sources/seed.json data/tracks.json
+      - name: Commit if changed
+        run: |
+          git config user.name "music-bot"
+          git config user.email "actions@github.com"
+          git add data/tracks.json
+          git diff --quiet --cached || git commit -m "rebuild manifest"
+          git push
