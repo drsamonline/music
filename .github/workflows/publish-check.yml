@@ -35,13 +35,19 @@ jobs:
           miss=0
           for p in $PATHS; do
             mine=$(sha256sum "$p" | cut -d' ' -f1)
-            theirs=$(gh api "repos/drsamonline/drsamonline.github.io/contents/music/$p" \
-                       --jq '.content' 2>/dev/null | base64 -d 2>/dev/null | sha256sum | cut -d' ' -f1)
+            # A file the hub does not have is a difference, not an error: the pipeline
+            # fails under `bash -e` when gh returns 404, so it is allowed to.
+            theirs=$( (gh api "repos/drsamonline/drsamonline.github.io/contents/music/$p" \
+                        --jq '.content' 2>/dev/null | base64 -d 2>/dev/null | sha256sum | cut -d' ' -f1) || true )
             if [ "$mine" != "$theirs" ]; then
               echo "::warning file=$p::$p differs from the hub's copy — run: cp $p ../drsamonline.github.io/music/$p"
               miss=$((miss+1))
             fi
           done
           echo "$miss published file(s) differ from the hub"
+          # Deliberately exit 0. The hub copy IS the live site; a red run here would not
+          # have prevented a drift, and it would sit beside the real failures. The
+          # warning names the file and the copy command, which is the useful part.
           # A drift is a warning, not a failure: the hub copy is the live site, and a
           # red run here would not have prevented it. The count is the signal.
+          exit 0
