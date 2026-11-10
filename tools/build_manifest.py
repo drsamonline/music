@@ -7,6 +7,7 @@ Rules encoded here:
   * albums come from title series (Flow/Suno), year buckets (SoundCloud) and fixed names
 """
 import json, re, hashlib, datetime, sys
+from urllib.parse import quote
 from collections import defaultdict
 
 SEED = sys.argv[1] if len(sys.argv) > 1 else '/scratch/output/music-sources-seed.json'
@@ -156,8 +157,8 @@ for (site, name), rows in sorted(final.items(),
             'source_url': t.get('url'),
         }
         if t['site'] == 'soundcloud':
-            embed['player_url'] = t.get('embed_url') or (
-                'https://w.soundcloud.com/player/?url=' + (t.get('url') or ''))
+            embed['player_url'] = ('https://w.soundcloud.com/player/?url='
+                                   + quote(t.get('url') or '', safe=''))
         elif t['site'] == 'suno':
             embed['player_url'] = t.get('embed_url') or (
                 'https://suno.com/embed/' + (t.get('song_id') or ''))
