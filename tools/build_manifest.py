@@ -16,15 +16,24 @@ OUT = sys.argv[2] if len(sys.argv) > 2 else '/scratch/work/site/data/tracks.json
 seed = json.load(open(SEED))
 tracks = [dict(t) for t in seed['tracks']]
 
-FLOW_COVERS = {
-    '400 BPM Techno': 'media/covers/400-bpm-techno.jpg',
-    'Arena Awakens': 'media/covers/arena-awakens.jpg',
-    'Beyond the Stars': 'media/covers/beyond-the-stars.jpg',
-    'Black Oil Wire': 'media/covers/black-oil-wire.jpg',
-    'Dawn Pursuit': 'media/covers/dawn-pursuit.jpg',
-    'Phonk Sessions': 'media/covers/phonk-sessions.jpg',
-    'Vocal Mayhem': 'media/covers/vocal-mayhem.jpg',
-    'Singles': 'media/covers/flow-singles.jpg',
+ALBUM_COVERS = {
+    # every cover is downloaded into media/covers and served from this repo.
+    # hotlinking the platform CDNs was unreliable: sndcdn and cdn2.suno.ai
+    # refuse requests that do not come from their own pages.
+    ('soundcloud', 'SoundCloud · 2020'): 'media/covers/soundcloud-2020.jpg',
+    ('soundcloud', 'SoundCloud · 2015'): 'media/covers/soundcloud-2015.jpg',
+    ('soundcloud', 'SoundCloud · 2013'): 'media/covers/soundcloud-2013.jpg',
+    ('soundcloud', 'SoundCloud · 2010'): 'media/covers/soundcloud-2010.jpg',
+    ('suno', 'Arena'): 'media/covers/suno-arena.jpg',
+    ('suno', 'Singles'): 'media/covers/suno-singles.jpg',
+    ('flow_music', '400 BPM Techno'): 'media/covers/400-bpm-techno.jpg',
+    ('flow_music', 'Arena Awakens'): 'media/covers/arena-awakens.jpg',
+    ('flow_music', 'Beyond the Stars'): 'media/covers/beyond-the-stars.jpg',
+    ('flow_music', 'Black Oil Wire'): 'media/covers/black-oil-wire.jpg',
+    ('flow_music', 'Dawn Pursuit'): 'media/covers/dawn-pursuit.jpg',
+    ('flow_music', 'Phonk Sessions'): 'media/covers/phonk-sessions.jpg',
+    ('flow_music', 'Vocal Mayhem'): 'media/covers/vocal-mayhem.jpg',
+    ('flow_music', 'Singles'): 'media/covers/flow-singles.jpg',
 }
 
 SITE_ORDER = {'soundcloud': 0, 'suno': 1, 'flow_music': 2, 'newgrounds': 3, 'freesound': 4}
@@ -129,9 +138,9 @@ for (site, name), rows in sorted(final.items(),
         year = int(sorted(years)[-1])
 
     total_secs = sum(int(t.get('duration') or 0) for t in rows)
-    cover_url = next((t.get('art') for t in rows if t.get('art')), None)
-    if not cover_url and site == 'flow_music':
-        cover_url = FLOW_COVERS.get(name)
+    cover_url = ALBUM_COVERS.get((site, name))
+    if not cover_url:
+        cover_url = next((t.get('art') for t in rows if t.get('art')), None)
     slug = slugify(name)
     if slug in used_slugs:
         slug = slug + '-' + slugify(SITE_LABEL[site])
