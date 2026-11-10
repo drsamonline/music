@@ -15,6 +15,17 @@ OUT = sys.argv[2] if len(sys.argv) > 2 else '/scratch/work/site/data/tracks.json
 seed = json.load(open(SEED))
 tracks = [dict(t) for t in seed['tracks']]
 
+FLOW_COVERS = {
+    '400 BPM Techno': 'media/covers/400-bpm-techno.jpg',
+    'Arena Awakens': 'media/covers/arena-awakens.jpg',
+    'Beyond the Stars': 'media/covers/beyond-the-stars.jpg',
+    'Black Oil Wire': 'media/covers/black-oil-wire.jpg',
+    'Dawn Pursuit': 'media/covers/dawn-pursuit.jpg',
+    'Phonk Sessions': 'media/covers/phonk-sessions.jpg',
+    'Vocal Mayhem': 'media/covers/vocal-mayhem.jpg',
+    'Singles': 'media/covers/flow-singles.jpg',
+}
+
 SITE_ORDER = {'soundcloud': 0, 'suno': 1, 'flow_music': 2, 'newgrounds': 3, 'freesound': 4}
 SITE_LABEL = {'soundcloud': 'SoundCloud', 'suno': 'Suno', 'flow_music': 'Flow Music',
               'newgrounds': 'Newgrounds', 'freesound': 'Freesound'}
@@ -117,6 +128,9 @@ for (site, name), rows in sorted(final.items(),
         year = int(sorted(years)[-1])
 
     total_secs = sum(int(t.get('duration') or 0) for t in rows)
+    cover_url = next((t.get('art') for t in rows if t.get('art')), None)
+    if not cover_url and site == 'flow_music':
+        cover_url = FLOW_COVERS.get(name)
     slug = slugify(name)
     if slug in used_slugs:
         slug = slug + '-' + slugify(SITE_LABEL[site])
@@ -128,6 +142,7 @@ for (site, name), rows in sorted(final.items(),
         'source': site,
         'source_label': SITE_LABEL[site],
         'year': year,
+        'cover_url': cover_url,
         'track_count': len(rows),
         'total_seconds': total_secs,
         'duration_label': fmt_dur(total_secs) if total_secs else '',
@@ -173,6 +188,7 @@ for (site, name), rows in sorted(final.items(),
                     'Free to listen on this page. No commercial use.'),
                 'licence': t.get('licence'),
             },
+            'art': t.get('art'),
             'also_on': t.get('also_on', []),
             'link_pending': link_pending,
         })
