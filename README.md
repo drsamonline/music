@@ -53,7 +53,7 @@ Pages serves the repository root. `deploy.yml` publishes on every push to `main`
 If this is useful to you, the work is supported here:
 
 - **Email** — [sohilmomin2000@gmail.com](mailto:sohilmomin2000@gmail.com) for bugs, corrections and licensing questions.
-- **UPI** — `sohilmomin2000@upi`
+- **UPI** — `drsohilboi@ybl`
 - **Ko-fi** — [ko-fi.com/drsamonline](https://ko-fi.com/drsamonline)
 - **PayPal** — [paypal.me/drsamonline](https://paypal.me/drsamonline)
 
