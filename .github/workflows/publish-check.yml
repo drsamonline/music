@@ -1,14 +1,15 @@
 name: publish-check
 
-# The site at https://drsamonline.github.io/music/ is served by the HUB repository
-# (drsamonline.github.io/music/), not by this one: Pages is not enabled here, and the
-# deploy workflow that used to live in this file could never succeed — it failed at
-# `configure-pages` with "Get Pages site failed" on every push, which is a red X that
-# says nothing about the code.
+# The site at https://drsamonline.github.io/music/ is served by the HUB repository, not by
+# this one. Pages is not enabled here, and the deploy workflow that used to live in this
+# file could never succeed: it failed at `configure-pages` with "Get Pages site failed" on
+# every push, which is a red X that says nothing about the code.
 #
-# So this workflow does not deploy. It checks the thing that can actually go wrong:
-# the hub's copy drifting from this repository, which is what publishing means here.
-# It names the files and the copy command when they differ.
+# It used to COMPARE the two copies and print a warning telling a person to run `cp`. A
+# warning that asks a person to copy a file is a note that gets read once. This publishes:
+# a file that differs is written to the hub, committed there, and the run says what it
+# pushed. Publishing is the thing that can actually go wrong, so publishing is what is
+# checked.
 
 on:
   push:
@@ -19,35 +20,41 @@ permissions:
   contents: read
 
 jobs:
-  drift:
+  publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Compare every published file with the hub's copy
+      - name: Publish every file the page needs to the hub
         env:
-          GH_TOKEN: ${{ github.token }}
+          # a token that can write drsamonline/drsamonline.github.io; the repository's own
+          # GITHUB_TOKEN cannot reach another repository
+          GH_TOKEN: ${{ secrets.FANOUT_TOKEN }}
         run: |
           set -uo pipefail
-          # What the page needs to work. Anything else here (workflows, README, tools,
-          # tests) is not published.
+          if [ -z "${GH_TOKEN}" ]; then
+            echo "::error title=no token::secrets.FANOUT_TOKEN is not set, so the hub cannot be written. Set it, or the site will silently keep the old files."
+            exit 1
+          fi
+          HUB=drsamonline/drsamonline.github.io
           PATHS=$(git ls-files | grep -Ev '^(\.github/|tools/|tests/|README|LICENSE|CHANGELOG)' || true)
-          miss=0
+          pushed=0
           for p in $PATHS; do
             mine=$(sha256sum "$p" | cut -d' ' -f1)
-            # A file the hub does not have is a difference, not an error: the pipeline
-            # fails under `bash -e` when gh returns 404, so it is allowed to.
-            theirs=$( (gh api "repos/drsamonline/drsamonline.github.io/contents/music/$p" \
-                        --jq '.content' 2>/dev/null | base64 -d 2>/dev/null | sha256sum | cut -d' ' -f1) || true )
-            if [ "$mine" != "$theirs" ]; then
-              echo "::warning file=$p::$p differs from the hub's copy — run: cp $p ../drsamonline.github.io/music/$p"
-              miss=$((miss+1))
+            resp=$(gh api "repos/$HUB/contents/music/$p" 2>/dev/null || true)
+            theirs=$(printf '%s' "$resp" | jq -r '.content // empty' 2>/dev/null | base64 -d 2>/dev/null | sha256sum | cut -d' ' -f1)
+            sha=$(printf '%s' "$resp" | jq -r '.sha // empty' 2>/dev/null)
+            if [ "$mine" = "$theirs" ]; then continue; fi
+            args=(-X PUT "repos/$HUB/contents/music/$p"
+                  -f "message=publish: $p from drsamonline/music@${GITHUB_SHA:0:7}"
+                  -f "content=$(base64 -w0 "$p")")
+            if [ -n "$sha" ]; then args+=(-f "sha=$sha"); fi
+            if gh api "${args[@]}" >/dev/null 2>&1; then
+              echo "published $p"
+              pushed=$((pushed+1))
+            else
+              echo "::error file=$p::could not publish $p to the hub"
+              exit 1
             fi
           done
-          echo "$miss published file(s) differ from the hub"
-          # Deliberately exit 0. The hub copy IS the live site; a red run here would not
-          # have prevented a drift, and it would sit beside the real failures. The
-          # warning names the file and the copy command, which is the useful part.
-          # A drift is a warning, not a failure: the hub copy is the live site, and a
-          # red run here would not have prevented it. The count is the signal.
-          exit 0
+          echo "$pushed file(s) published to $HUB"
