@@ -45,3 +45,14 @@ Anything uncertain lands in `personal`. Silence never grants rights.
 ## Deploy
 
 Pages serves the repository root. `deploy.yml` publishes on every push to `main`.
+
+## Support
+
+If this is useful to you, the work is supported here:
+
+- **Email** — [sohilmomin2000@gmail.com](mailto:sohilmomin2000@gmail.com) for bugs, corrections and licensing questions.
+- **UPI** — `sohilmomin2000@upi`
+- **Ko-fi** — [ko-fi.com/drsamonline](https://ko-fi.com/drsamonline)
+- **PayPal** — [paypal.me/drsamonline](https://paypal.me/drsamonline)
+
+The page itself is free and uncommercial; a commercial licence is for using the recordings in paid work.
