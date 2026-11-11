@@ -22,8 +22,27 @@ jobs:
         run: python3 tools/build_manifest.py sources/seed.json data/tracks.json
       - name: Commit if changed
         run: |
+          set -euo pipefail
           git config user.name "music-bot"
           git config user.email "actions@github.com"
           git add data/tracks.json
-          git diff --quiet --cached || git commit -m "rebuild manifest"
-          git push
+          if git diff --quiet --cached; then
+            echo "manifest unchanged — nothing to commit"
+            exit 0
+          fi
+          git commit -m "rebuild manifest"
+          # actions/checkout leaves a DETACHED HEAD when the run was started from a
+          # commit (a dispatch on a sha, or a run replayed from one). `git push` then
+          # dies with "fatal: You are not currently on a branch" AFTER the commit has
+          # already been made, so the rebuilt manifest was never published and the run
+          # went red every time (2026-11-11T04:11Z, run 42957613306). Push an explicit
+          # refspec instead of the current branch: HEAD:main works from a branch and
+          # from a detached HEAD alike.
+          if [ "${GITHUB_REF:-}" != "refs/heads/main" ]; then
+            echo "::warning::not on refs/heads/main (${GITHUB_REF:-unset}) — committed locally, not pushed"
+            exit 0
+          fi
+          # A second push can land between checkout and here; rebase onto it rather
+          # than losing the run to a non-fast-forward.
+          git pull --rebase --autostash origin main
+          git push origin HEAD:main
