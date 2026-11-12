@@ -35,10 +35,19 @@ jobs:
           # 1. the manifest parses, and every track has the fields the page renders
           python3 - <<'PY' || fail=1
           import json, sys
+          # the manifest is albums, each with its own counts — the first version of this
+          # check assumed a flat `tracks` list and reported all 151 missing
           m = json.load(open("data/tracks.json"))
-          tracks = m.get("tracks", m if isinstance(m, list) else [])
-          bad = [t for t in tracks if not t.get("title") or not t.get("url")]
-          print(f"{len(tracks)} tracks, {len(bad)} missing a title or url")
+          albums = m.get("albums", [])
+          c = m.get("counts", {})
+          bad = [a for a in albums if not a.get("title") or not a.get("slug") or not a.get("source")]
+          no_cover = [a for a in albums if not a.get("cover_url")]
+          print(f"{len(albums)} albums, {c.get('tracks', '?')} tracks, "
+                f"{len(bad)} missing title/slug/source, {len(no_cover)} without a cover")
+          # the counts must agree with the albums actually present
+          if c.get("albums") not in (None, len(albums)):
+              print(f"::error::counts.albums says {c['albums']}, the file has {len(albums)}")
+              sys.exit(1)
           sys.exit(1 if bad else 0)
           PY
 
